@@ -1,6 +1,5 @@
-//jshint esversion:6
-let posts=[]
 const express = require("express");
+const mongoose=require("mongoose");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const _ = require("lodash");
@@ -11,6 +10,18 @@ const contactContent = "Scelerisque eleifend donec pretium vulputate sapien. Rho
 
 const app = express();
 
+mongoose.connect("mongodb://0.0.0.0:27017/blogDB");
+
+const postSchema = {
+
+  title: String,
+ 
+  content: String
+ 
+ };
+
+ const Post = mongoose.model("Post", postSchema);
+
 app.set('view engine', 'ejs');
 
 app.use(bodyParser.urlencoded({extended: true}));
@@ -18,7 +29,10 @@ app.use(express.static("public"));
 
 
 app.get("/",function(req,res){
-  res.render("home",{posts:posts,StartingContent:homeStartingContent});
+  Post.find({}).then(function(posts){
+    res.render("home",{posts:posts,StartingContent:homeStartingContent});    
+  })
+  
 })
 
 app.get("/about",function(req,res){
@@ -35,30 +49,39 @@ app.get("/compose",function(req,res){
 })
 
 app.post("/compose",function(req,res){
-  const post={
+  
+  const post = new Post ({
+
     title: req.body.postTitle,
-    body: req.body.postBody
-  };
-  posts.push(post);
-  console.log(posts);
-  res.redirect("/");
-})
-
-app.get("/posts/:postmsg",function(req,res){
-  //console.log(req.params.postmsg);
-
-  posts.forEach(function(post){
-    var pmsg=_.lowerCase(req.params.postmsg);
-    var title= _.lowerCase(post.title);
-    //console.log(pmsg,title);
-    if (pmsg == title){
-      res.render("post",{post:post});
-    }
+ 
+    content: req.body.postBody
  
   });
-  
+  post.save().then(function(){
+    res.redirect("/");
+
+  });
+  // console.log(posts);
   
 })
+
+app.get("/posts/:postId",function(req,res){
+  
+  const requestedPostId = req.params.postId;
+
+  Post.findOne({_id: requestedPostId}).then(function(post){
+    res.render("post", {
+      title: post.title,
+      content: post.content 
+    });
+
+   });
+
+  
+  
+  
+  
+});
 
 
 
